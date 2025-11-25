@@ -1,21 +1,23 @@
 name: SMSA Tracker
 
+# Triggers
 on:
   schedule:
-    - cron: "*/1 * * * *"  # every 1 minute
-  workflow_dispatch:  # allows manual run
+    - cron: "*/1 * * * *" # every 1 minute UTC
+  workflow_dispatch: # allows manual run
 
 jobs:
   track:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # allow updating files
 
     steps:
       # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: false  # <-- disable GitHub Actions bot credentials
-
+          persist-credentials: false # disable default GitHub Actions bot credentials
 
       # 2. Setup Python
       - name: Setup Python
@@ -36,7 +38,7 @@ jobs:
         run: |
           python tracker.py
 
-      # 5. Push updated last_status.json using Personal Access Token
+      # 5. Commit & push last_status.json using GH_PAT
       - name: Push last_status.json
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -46,4 +48,3 @@ jobs:
           git add last_status.json
           git commit -m "update status" || echo "No changes to commit"
           git push https://$GH_PAT@github.com/KarimMamdouh97/smsa-tracker.git main
-
