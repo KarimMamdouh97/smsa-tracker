@@ -11,7 +11,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 PUSHOVER_USER = os.environ["PUSHOVER_USER"]
 PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
 SMSA_URL = "https://www.smsaexpress.com/eg/trackingdetails?tracknumbers%5B0%5D=291541450756"
-
 STATE_FILE = "last_status.json"
 
 # ==== HELPER: send Pushover notification ====
@@ -19,7 +18,7 @@ def send_notification(title, message):
     requests.post(
         "https://api.pushover.net/1/messages.json",
         data={
-            "token": PUSHOVER_TOKEN,
+            "token": PUSHOVER_TOKEN,  # your custom app token (defines logo)
             "user": PUSHOVER_USER,
             "title": title,
             "message": message,
@@ -43,13 +42,19 @@ def parse_tracking():
     r = requests.get(SMSA_URL, verify=False)
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # Select latest status
+    # Latest status
     latest = soup.select_one(
         "#ticket-tracking-details > div:nth-child(1) > div:nth-child(2) > div.col-xl-8.col-lg-8.col-md-8.col-sm-12 > div > div:nth-child(1) > p"
     )
-    if latest:
-        return latest.get_text(strip=True)
-    return "No status found"
+    # Optional: get location
+    location_span = soup.select_one(
+        "#ticket-tracking-details .tracking-details .trk-wrap-content-right span"
+    )
+
+    latest_status = latest.get_text(strip=True) if latest else "No status found"
+    location = location_span.get_text(strip=True) if location_span else "Unknown"
+
+    return f"{latest_status} 📍 {location}"
 
 # ==== MAIN ====
 if __name__ == "__main__":
@@ -58,8 +63,7 @@ if __name__ == "__main__":
         current_status = parse_tracking()
 
         if last_status.get("status") != current_status:
-            # New update
-            send_notification("📦 SMSA Update", f"Status: {current_status}")
+            send_notification("📦 SMSA Update", current_status)
             save_last_status({"status": current_status})
             print("✅ Notification sent:", current_status)
         else:
