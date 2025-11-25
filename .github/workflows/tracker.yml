@@ -2,7 +2,7 @@ name: SMSA Tracker
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *"  # every 30 minutes
   workflow_dispatch:
 
 jobs:
@@ -10,27 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      # Checkout code and allow pushes
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: true   # <-- allows workflow to push using GITHUB_TOKEN
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        pip install requests beautifulsoup4
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
 
-    - name: Run tracker
-      env:
-        PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
-        PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
-      run: python tracker.py
+      # Run tracker
+      - name: Run tracker
+        env:
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+        run: python tracker.py
 
-    - name: Save State
-      run: |
-        git config user.name "github-actions"
-        git config user.email "actions@github.com"
-        git add last_status.json
-        git commit -m "update status" || echo "no changes"
-        git push
+      # Save last status back to repo
+      - name: Save State
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add last_status.json
+          git commit -m "update status" || echo "no changes"
+          git push
