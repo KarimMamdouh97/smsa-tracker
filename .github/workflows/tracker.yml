@@ -2,42 +2,46 @@ name: SMSA Tracker
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # every 30 minutes
-  workflow_dispatch:
+    - cron: "*/15 * * * *"  # every 15 minutes
+  workflow_dispatch:  # allows manual run
 
 jobs:
   track:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # allow pushing last_status.json
 
     steps:
-      # Checkout code and allow pushes
-      - uses: actions/checkout@v3
+      # 1. Checkout with push permission
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
-          persist-credentials: true   # <-- allows workflow to push using GITHUB_TOKEN
+          persist-credentials: true
 
-      # Setup Python
+      # 2. Setup Python
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      # Install dependencies
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
           pip install requests beautifulsoup4
 
-      # Run tracker
+      # 4. Run tracker
       - name: Run tracker
         env:
           PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
           PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
-        run: python tracker.py
+        run: |
+          python tracker.py
 
-      # Save last status back to repo
-      - name: Save State
+      # 5. Push updated last_status.json
+      - name: Push last_status.json
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add last_status.json
-          git commit -m "update status" || echo "no changes"
+          git commit -m "update status" || echo "No changes to commit"
           git push
