@@ -2,22 +2,20 @@ name: SMSA Tracker
 
 on:
   schedule:
-    - cron: "*/1 * * * *"  # every 1 minutes
+    - cron: "*/1 * * * *"  # every 1 minute
   workflow_dispatch:  # allows manual run
 
 jobs:
   track:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # allow pushing last_status.json
 
     steps:
-      # 1. Checkout repository (only fetch what's needed)
+      # 1. Checkout repository without persisting credentials
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: true
-          fetch-depth: 1  # shallow clone, faster
+          persist-credentials: false  # prevents workflow push issues
+          fetch-depth: 1
 
       # 2. Setup Python
       - name: Setup Python
@@ -35,16 +33,17 @@ jobs:
         env:
           PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
           PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
-          PUSHOVER_CUSTOM_TOKEN: ${{ secrets.PUSHOVER_CUSTOM_TOKEN }}  # optional for custom logo
         run: |
           python tracker.py
 
-      # 5. Push only last_status.json
+      # 5. Push updated last_status.json
       - name: Push last_status.json
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}  # your Personal Access Token
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+          git checkout main
           git add last_status.json
           git commit -m "update status" || echo "No changes to commit"
-          # Push only last_status.json to avoid workflow push errors
-          git push origin HEAD:main --force-with-lease
+          git push https://$GH_PAT@github.com/KarimMamdouh97/smsa-tracker.git main
