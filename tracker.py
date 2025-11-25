@@ -5,7 +5,7 @@ import json
 
 PUSHOVER_USER = os.environ["PUSHOVER_USER"]
 PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
-SMSA_URL = "https://www.smsaexpress.com/eg/trackingdetails?tracknumbers%5B0%5D=291541450756"
+SMSA_URL = os.environ["SMSA_URL"]
 STATE_FILE = "state.json"
 
 def push_message(event):
